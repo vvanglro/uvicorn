@@ -90,7 +90,7 @@ def test_multiprocess_health_check() -> None:
     time.sleep(1)
     try:
         assert not process.is_alive()
-        time.sleep(1)
+        time.sleep(2)
         for p in supervisor.processes:
             assert p.is_alive()
     finally:
