@@ -208,4 +208,4 @@ async def test_server_start_with_port_zero(caplog: pytest.LogCaptureFixture):
         sock = server.sockets[0]
         host, port = sock.getsockname()
     messages = [record.message for record in caplog.records if "uvicorn" in record.name]
-    assert f"Uvicorn running on http://{host}:{port} (Press CTRL+C to quit)" in messages
+    assert f"Uvicorn running on http://{host}:{port} IPv6:off (Press CTRL+C to quit)" in messages

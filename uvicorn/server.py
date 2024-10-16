@@ -198,23 +198,34 @@ class Server:
             logger.info("Uvicorn running on unix socket %s (Press CTRL+C to quit)", config.uds)
 
         else:
+            is_ipv6 = "off"
             addr_format = "%s://%s:%d"
-            host = "0.0.0.0" if config.host is None else config.host
-            if ":" in host:
-                # It's an IPv6 address.
-                addr_format = "%s://[%s]:%d"
+            hosts = config.host
+            log_host = hosts[0]
+            for host in hosts:
+                if ":" in host:
+                    # It's an IPv6 address.
+                    addr_format = "%s://[%s]:%d"
+                    is_ipv6 = "on"
+                    log_host = host
 
             port = config.port
             if port == 0:
                 port = listeners[0].getsockname()[1]
 
             protocol_name = "https" if config.ssl else "http"
-            message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
-            color_message = "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
+            message = f"Uvicorn running on {addr_format} IPv6:{is_ipv6} (Press CTRL+C to quit)"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(addr_format, bold=True)
+                + " IPv6:"
+                + click.style(is_ipv6, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
             logger.info(
                 message,
                 protocol_name,
-                host,
+                log_host,
                 port,
                 extra={"color_message": color_message},
             )

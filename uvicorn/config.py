@@ -176,7 +176,7 @@ class Config:
     def __init__(
         self,
         app: ASGIApplication | Callable[..., Any] | str,
-        host: str = "127.0.0.1",
+        host: list[str] | str | None = "127.0.0.1",
         port: int = 8000,
         uds: str | None = None,
         fd: int | None = None,
@@ -225,6 +225,9 @@ class Config:
         h11_max_incomplete_event_size: int | None = None,
     ):
         self.app = app
+        print(host)
+        if host and isinstance(host, str):
+            host = [host]
         self.host = host
         self.port = port
         self.uds = uds
@@ -500,26 +503,36 @@ class Config:
             color_message = "Uvicorn running on " + click.style(fd_name_format, bold=True) + " (Press CTRL+C to quit)"
             logger_args = [sock.getsockname()]
         else:
+            is_ipv6 = "off"
             family = socket.AF_INET
             addr_format = "%s://%s:%d"
-
-            if self.host and ":" in self.host:  # pragma: full coverage
-                # It's an IPv6 address.
-                family = socket.AF_INET6
-                addr_format = "%s://[%s]:%d"
+            log_host = self.host[0]
+            for host in self.host:
+                if ":" in host:  # pragma: full coverage
+                    # It's an IPv6 address.
+                    family = socket.AF_INET6
+                    addr_format = "%s://[%s]:%d"
+                    is_ipv6 = "on"
+                    log_host = host
 
             sock = socket.socket(family=family)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
-                sock.bind((self.host, self.port))
+                sock.bind((log_host, self.port))
             except OSError as exc:  # pragma: full coverage
                 logger.error(exc)
                 sys.exit(1)
 
-            message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
-            color_message = "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
+            message = f"Uvicorn running on {addr_format} IPv6:{is_ipv6} (Press CTRL+C to quit)"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(addr_format, bold=True)
+                + " IPv6:"
+                + click.style(is_ipv6, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
             protocol_name = "https" if self.is_ssl else "http"
-            logger_args = [protocol_name, self.host, sock.getsockname()[1]]
+            logger_args = [protocol_name, log_host, sock.getsockname()[1]]
         logger.info(message, *logger_args, extra={"color_message": color_message})
         sock.set_inheritable(True)
         return sock
